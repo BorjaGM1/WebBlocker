@@ -1,0 +1,107 @@
+﻿@page "/websites"
+@rendermode InteractiveServer
+
+<PageTitle>Websites</PageTitle>
+
+<h1>Websites block manager</h1>
+
+@if (websites == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <button class="btn btn-success" @onclick="ShowAddWebsiteForm">Add Website</button>
+
+    @if (showAddWebsiteForm)
+    {
+        <div class="add-website-form">
+            <h2>Add New Website</h2>
+            <EditForm Model="newWebsite" OnValidSubmit="HandleValidSubmit">
+                <div class="form-group">
+                    <label for="url">Website URL:</label>
+                    <InputText id="url" class="form-control" @bind-Value="newWebsite.Url" />
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="button" class="btn btn-secondary" @onclick="HideAddWebsiteForm">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    }
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Website</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var website in websites)
+            {
+                <tr>
+                    <td>
+                        @website.Url
+                    </td>
+                    <td>
+                        @(website.IsBlocked ? "Blocked" : "Unblocked")
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ToggleBlock(website)">@(website.IsBlocked ? "Unblock" : "Block")</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<WebsiteEntry>? websites;
+    private bool showAddWebsiteForm = false;
+    private WebsiteEntry newWebsite = new WebsiteEntry();
+
+    [Inject]
+    private HostsFileService HostsFileService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(1);
+        websites = await HostsFileService.GetWebsiteEntriesAsync();
+    }
+
+    private async Task ToggleBlock(WebsiteEntry website)
+    {
+        if (website.IsBlocked)
+        {
+            HostsFileService.UnblockWebsite(website.Url);
+        }
+        else
+        {
+            HostsFileService.BlockWebsite(website.Url);
+        }
+
+        websites = await HostsFileService.GetWebsiteEntriesAsync();
+        StateHasChanged();
+    }
+
+    private void ShowAddWebsiteForm()
+    {
+        showAddWebsiteForm = true;
+    }
+
+    private void HideAddWebsiteForm()
+    {
+        showAddWebsiteForm = false;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await HostsFileService.AddWebsite(newWebsite);
+        websites = await HostsFileService.GetWebsiteEntriesAsync();
+        newWebsite = new WebsiteEntry();
+        showAddWebsiteForm = false;
+        //StateHasChanged();
+    }
+}

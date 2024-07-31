@@ -1,0 +1,92 @@
+﻿@page "/websitesasdf"
+@attribute [StreamRendering]
+
+<PageTitle>Websites</PageTitle>
+
+<h1>Websites</h1>
+
+<p>Website blocking management.</p>
+
+@if (websites == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Website</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var website in websites)
+            {
+                <tr>
+                    <td>@website.Url</td>
+                    <td>@(website.IsBlocked ? "Blocked" : "Unblocked")</td>
+                    <td>
+                        @* <button class="btn btn-primary" @onclick="() => ToggleBlock(website)">
+                            @(website.IsBlocked ? "Unblock" : "Block")
+                        </button> *@
+                        <button class="btn btn-primary" @onclick="ToggleBlock">
+                            @(website.IsBlocked ? "Unblock" : "Block")
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <button class="btn btn-danger" @onclick="BlockAllWebsites">Block All</button>
+    <button class="btn btn-success" @onclick="UnblockAllWebsites">Unblock All</button>
+}
+
+@code {
+    private List<WebsiteEntry>? websites;
+
+    [Inject]
+    private HostsFileService HostsFileService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        websites = await HostsFileService.GetWebsiteEntriesAsync();
+    }
+
+    private void ToggleBlock()
+    {
+        string s = "";
+    }
+
+    private void ToggleBlock(WebsiteEntry website)
+    {
+        if (website.IsBlocked)
+        {
+            HostsFileService.UnblockWebsite(website.Url);
+            //await HostsFileService.UnblockWebsiteAsync(website.Url);
+        }
+        else
+        {
+            HostsFileService.BlockWebsite(website.Url);
+            //await HostsFileService.BlockWebsiteAsync(website.Url);
+        }
+
+        websites = HostsFileService.GetWebsiteEntries();
+        StateHasChanged();
+    }
+
+    private async Task BlockAllWebsites()
+    {
+        await HostsFileService.BlockAllWebsitesAsync();
+        websites = await HostsFileService.GetWebsiteEntriesAsync();
+        StateHasChanged();
+    }
+
+    private async Task UnblockAllWebsites()
+    {
+        await HostsFileService.UnblockAllWebsitesAsync();
+        websites = await HostsFileService.GetWebsiteEntriesAsync();
+        StateHasChanged();
+    }
+}
